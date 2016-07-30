@@ -7,6 +7,6 @@ Drop and share something by email
 
 
 ## TODO 
-* Share over NAT network.
-* Share multiple files
-* SSL/TLS
+- [x] Share over NAT network.
+- [ ] Share multiple files
+- [ ] SSL/TLS
