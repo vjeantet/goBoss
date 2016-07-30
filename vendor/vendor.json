@@ -1,0 +1,31 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "IUksYuRikEHicKTi2d+TpQedxdw=",
+			"path": "github.com/Bowery/prompt",
+			"revision": "3a76720709401fd06e29c3105c51f18b9f001108",
+			"revisionTime": "2015-07-22T23:30:59Z"
+		},
+		{
+			"checksumSHA1": "SNSgdp5ShDZ57VZqBkQ0PXJCJIM=",
+			"path": "github.com/atotto/clipboard",
+			"revision": "bb272b845f1112e10117e3e45ce39f690c0001ad",
+			"revisionTime": "2016-02-19T03:44:21Z"
+		},
+		{
+			"checksumSHA1": "d1Hkr1qPqnM43bkN2P2kP48mD6A=",
+			"path": "github.com/gin-gonic/gin",
+			"revision": "1a7ab6e4d5fdc72d6df30ef562102ae6e0d18518",
+			"revisionTime": "2015-06-18T15:17:22Z"
+		},
+		{
+			"checksumSHA1": "1x5iL8daETet8FjM7l2qp9Swvls=",
+			"path": "github.com/skratchdot/open-golang/open",
+			"revision": "c8748311a7528d0ba7330d302adbc5a677ef9c9e",
+			"revisionTime": "2015-02-21T14:03:35Z"
+		}
+	],
+	"rootPath": "github.com/vjeantet/goBoss"
+}
