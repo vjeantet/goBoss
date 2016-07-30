@@ -15,16 +15,58 @@
 			"revisionTime": "2016-02-19T03:44:21Z"
 		},
 		{
+			"checksumSHA1": "dhtQd9jOFjyPBsyADr73GzaK2LY=",
+			"path": "github.com/gin-gonic/contrib/gzip",
+			"revision": "547e518040cfb96576b507d2f26779ab9c6fc829",
+			"revisionTime": "2016-07-03T14:36:48Z"
+		},
+		{
 			"checksumSHA1": "d1Hkr1qPqnM43bkN2P2kP48mD6A=",
 			"path": "github.com/gin-gonic/gin",
 			"revision": "1a7ab6e4d5fdc72d6df30ef562102ae6e0d18518",
 			"revisionTime": "2015-06-18T15:17:22Z"
 		},
 		{
+			"checksumSHA1": "M8Z61f8GZs6CO23wP+ekRgZEo+w=",
+			"path": "github.com/gin-gonic/gin/binding",
+			"revision": "1a7ab6e4d5fdc72d6df30ef562102ae6e0d18518",
+			"revisionTime": "2015-06-18T15:17:22Z"
+		},
+		{
+			"checksumSHA1": "/cPJSLLdEAWI/Mavbbe13RgSfP4=",
+			"path": "github.com/gin-gonic/gin/render",
+			"revision": "1a7ab6e4d5fdc72d6df30ef562102ae6e0d18518",
+			"revisionTime": "2015-06-18T15:17:22Z"
+		},
+		{
+			"checksumSHA1": "ZUOd8OUOp+xdpB7p4w/O86Y8wyc=",
+			"path": "github.com/manucorporat/sse",
+			"revision": "c142f0f1baea5cef7f98a8a6c222f6134368c1f5",
+			"revisionTime": "2015-06-04T09:11:00Z"
+		},
+		{
+			"checksumSHA1": "/zjnnN/Hrijtm1ObxnEPHhuFl8c=",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "e8a10ddc7d2a7fe255f6fd7f501070a4cb62c183",
+			"revisionTime": "2016-05-12T03:41:14Z"
+		},
+		{
 			"checksumSHA1": "1x5iL8daETet8FjM7l2qp9Swvls=",
 			"path": "github.com/skratchdot/open-golang/open",
 			"revision": "c8748311a7528d0ba7330d302adbc5a677ef9c9e",
 			"revisionTime": "2015-02-21T14:03:35Z"
+		},
+		{
+			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
+			"path": "golang.org/x/net/context",
+			"revision": "30be488e9140ebb7fac3b2995ac5a4b4d5e715ed",
+			"revisionTime": "2016-04-23T13:36:41Z"
+		},
+		{
+			"checksumSHA1": "4dBzqSb+A88peSlMzzfVotJNb0U=",
+			"path": "gopkg.in/bluesuncorp/validator.v5",
+			"revision": "c06d47f593d786142436a43334f724d819093c04",
+			"revisionTime": "2015-06-17T13:45:28Z"
 		}
 	],
 	"rootPath": "github.com/vjeantet/goBoss"

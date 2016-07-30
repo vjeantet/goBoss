@@ -10,15 +10,19 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Bowery/prompt"
 	"github.com/atotto/clipboard"
+	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/vjeantet/portmap"
 )
 
 type Configuration struct {
@@ -29,11 +33,16 @@ type Configuration struct {
 	DelaisMinutes    string
 	DelaisMinutesInt int
 	EnvoyerParMail   bool
+	Internet         bool
 	// List            string   `form:"list" choices:"Choice 1, Choice 2"`
 	// Checkbox        []string `form:"checkbox" choices:"Choice 1, Choice 2"`
 }
 
+var conf Configuration
+
 func main() {
+	var err error
+
 	if len(os.Args) < 2 {
 		log.Println("donner un fichier svp")
 		os.Exit(1)
@@ -41,83 +50,92 @@ func main() {
 	argsWithoutProg := os.Args[1:]
 	cheminFichier := strings.Join(argsWithoutProg, ", ")
 
-	var conf Configuration
-
-	conf.DelaisMinutes, _ = prompt.Basic("[ Desactiver le partage apres combien de minutes (10 par defaut) ? : ", false)
-	conf.EnvoyerParMail, _ = prompt.Ask("[ Envoyer le lien par email ? : ")
-
-	// ---
-
-	conf.Token = GetMD5Hash(cheminFichier)
+	// Configuration
+	conf.Token = GetMD5Hash(cheminFichier + time.Now().String())
 	conf.FileBaseName = filepath.Base(cheminFichier)
 	conf.FilePath = filepath.Clean(cheminFichier)
+	// Ask for configuration
+	conf.Internet, _ = prompt.Ask("[ Etes vous derriere une box sur internet ?")
+	conf.DelaisMinutes, _ = prompt.Basic("[ Desactiver le partage au bout de combien de minutes (10 par defaut) ? : ", false)
+	conf.EnvoyerParMail, _ = prompt.Ask("[ Envoyer le lien par email ? : ")
 
-	var err error
 	if conf.DelaisMinutesInt, err = strconv.Atoi(conf.DelaisMinutes); err != nil {
 		conf.DelaisMinutes = "10"
 		conf.DelaisMinutesInt = 10
 	}
 
+	// Configure Web Server
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = nil
 	r := gin.Default()
-
-	r.GET("/g/:token", func(c *gin.Context) {
-		token := c.Param("token")
-
-		if token == conf.Token {
-			if _, err := os.Stat(conf.FilePath); err != nil {
-				c.Header("Content-Type", "text/html")
-				c.String(404, "<h1>%s</h1>%s", "Fichier introuvable", err)
-				fmt.Printf("-- Erreur : %s\n", err)
-			} else {
-				c.Header("Content-Disposition", "attachment; filename=\""+conf.FileBaseName+"\"")
-				c.File(conf.FilePath)
-				fmt.Printf("-- Récupation OK du fichier %s par %s\n", conf.FileBaseName, c.Request.RemoteAddr)
-			}
-		} else {
-			c.String(403, "Fichier inconnu")
-			fmt.Printf("-- Erreur : token inconnu : '%s'\n", token)
-		}
-	})
-
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.GET("/g/:token", downloadFile)
 	ln, _ := net.Listen("tcp", ":0")
 	_, port, _ := net.SplitHostPort(ln.Addr().String())
-	// fmt.Println("Listening on port", port)
+	go http.Serve(ln, r)
 
-	host, ipv4 := getCurrentHostNameAndIPV4()
-	var lienHost string
+	// Timer
+	DiedAt := time.Now().Add(time.Duration(conf.DelaisMinutesInt) * time.Minute)
+	timesUpChan := time.NewTicker(time.Minute * time.Duration(conf.DelaisMinutesInt)).C
+
+	// Format Link
 	var lienIP string
-
+	_, ipv4 := getCurrentHostNameAndIPV4()
 	lienIP = fmt.Sprintf("http://%s:%s/g/%s", ipv4, port, conf.Token)
-	if host == "" {
-		lienHost = fmt.Sprintf("http://%s:%s/g/%s", host, port, conf.Token)
+
+	// Expose link on internet
+	var m portmap.Mapping
+	if conf.Internet == true {
+		portInt, _ := strconv.Atoi(port)
+		m, _ = portmap.New(portmap.Config{
+			Protocol:     portmap.TCP,
+			Name:         "goBoss-" + conf.Token,
+			InternalPort: uint16(portInt),
+			ExternalPort: 0,
+			Lifetime:     time.Duration(conf.DelaisMinutesInt) * time.Minute,
+		})
+		fmt.Printf("Recherche de l'adresse de la box...\n\n")
+		<-m.NotifyChan()
+		m.StopBroadcast()
+		lienIP = fmt.Sprintf("http://%s/g/%s", m.ExternalAddr(), conf.Token)
 	}
 
 	fmt.Printf("Mise à disposition du fichier %s\n\n", conf.FileBaseName)
-	fmt.Printf("\t%s\n\n", lienHost)
 	fmt.Printf("\t%s\n\n", lienIP)
+	fmt.Printf("\tLe partage se terminera à %s, dans %d minutes\n\n", DiedAt.Format("15:04:05"), conf.DelaisMinutesInt)
 
+	// Send link to clipboard
+	if err := clipboard.WriteAll(lienIP); err == nil {
+		fmt.Printf("\tLe lien a été copié dans le presse papier\n\n")
+	}
+
+	// Prepare email
 	if conf.EnvoyerParMail {
 		open.Run(fmt.Sprintf("mailto:?subject=Fichier pour vous&Body=%s", lienIP))
 	}
-	go http.Serve(ln, r)
 
-	DiedAt := time.Now().Add(time.Duration(conf.DelaisMinutesInt) * time.Minute)
+	// Wait for signal CTRL+C for send a stop event to all AgentProcessor
+	// When CTRL+C, SIGINT and SIGTERM signal occurs
+	// Then stop server gracefully
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Printf("\tLe partage se terminera à %s, dans %d minutes\n\n", DiedAt.Format("15:04:05"), conf.DelaisMinutesInt)
-
-	if err := clipboard.WriteAll(lienIP); err == nil {
-		fmt.Printf("\tLe lien 'http://..' a été copié dans le presse papier\n\n")
+	select {
+	case <-timesUpChan:
+		fmt.Print("\a")
+		fmt.Println("Partage terminé...")
+		close(ch)
+	case <-ch:
+		close(ch)
 	}
 
-	time.Sleep(time.Minute * time.Duration(conf.DelaisMinutesInt))
-	ln.Close()
+	if conf.Internet == true {
+		m.Delete()
+		fmt.Println("Suppression du paramétrage de la box...")
+		time.Sleep(time.Second * 3)
+	}
 
-	fmt.Print("\a")
-	fmt.Println("Partage terminé, vous pouvez fermer cette fenetre...")
-	done := make(chan bool)
-	<-done
+	ln.Close()
 
 }
 
