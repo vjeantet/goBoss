@@ -18,7 +18,7 @@ func downloadFile(c *gin.Context) {
 	token := c.Param("token")
 
 	if token == conf.Token {
-		file := conf.Files[1]
+		file := conf.Files[0]
 		if _, err := os.Stat(file.FilePath); err != nil {
 			c.Header("Content-Type", "text/html")
 			c.String(404, "<h1>%s</h1>%s", "Fichier introuvable", err)

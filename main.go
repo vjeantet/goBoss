@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -35,8 +36,7 @@ func main() {
 	// Configuration
 	// Ask for configuration
 	conf.Internet, _ = prompt.Ask("[ Etes vous derriere une box sur internet ?")
-	conf.DelaisMinutes, _ = prompt.Basic("[ Desactiver le partage au bout de combien de minutes (10 par defaut) ? : ", false)
-	conf.EnvoyerParMail, _ = prompt.Ask("[ Envoyer le lien par email ? : ")
+	conf.DelaisMinutes, _ = prompt.BasicDefault("[ Desactiver le partage au bout de combien de minutes ? : ", "10")
 
 	if conf.DelaisMinutesInt, err = strconv.Atoi(conf.DelaisMinutes); err != nil {
 		conf.DelaisMinutes = "10"
@@ -45,7 +45,7 @@ func main() {
 
 	// Timer
 	DiedAt := time.Now().Add(time.Duration(conf.DelaisMinutesInt) * time.Minute)
-	timesUpChan := time.NewTicker(time.Minute * time.Duration(conf.DelaisMinutesInt)).C
+	timesUpChan := time.NewTicker(time.Minute * time.Duration(conf.DelaisMinutesInt))
 
 	// WebServer
 	server := NewServer()
@@ -60,10 +60,12 @@ func main() {
 		fmt.Printf("\tLe lien a été copié dans le presse papier\n\n")
 	}
 
-	// Prepare email
-	if conf.EnvoyerParMail {
-		open.Run(fmt.Sprintf("mailto:?subject=Fichier pour vous&Body=%s", conf.Link()))
-	}
+	// Send by mail ?
+	go func() {
+		if ok, _ := prompt.Ask("[ Envoyer le lien par email ? : "); ok {
+			open.Run(fmt.Sprintf("mailto:?subject=Fichier pour vous&Body=%s", url.QueryEscape(conf.Link())))
+		}
+	}()
 
 	// Wait for signal CTRL+C for send a stop event to all AgentProcessor
 	// When CTRL+C, SIGINT and SIGTERM signal occurs
@@ -72,7 +74,7 @@ func main() {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
-	case <-timesUpChan:
+	case <-timesUpChan.C:
 		fmt.Print("\a")
 		fmt.Println("Partage terminé...")
 		close(ch)
