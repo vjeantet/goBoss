@@ -88,7 +88,7 @@ func getCurrentHostNameAndIPV4() (string, string) {
 			case *net.IPAddr:
 				ip = v.IP
 			}
-			if !ip.IsLoopback() && ip.To4() != nil {
+			if !ip.IsLoopback() && ip.To4() != nil && !ip.IsLinkLocalUnicast() {
 				return name, ip.String()
 			}
 		}
