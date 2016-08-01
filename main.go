@@ -5,14 +5,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/Bowery/prompt"
 	"github.com/atotto/clipboard"
-	"github.com/skratchdot/open-golang/open"
 )
 
 var conf *Config
@@ -29,9 +28,9 @@ func main() {
 		conf.AddFilePath(f)
 	}
 
-	// Configuration
 	// Ask for configuration
-	conf.Internet, _ = prompt.Ask("[ Etes vous derriere une box sur internet ?")
+	max, _ := prompt.BasicDefault("Quitter apres combien de téléchargement ?", "1")
+	conf.DownloadLimit, _ = strconv.Atoi(max)
 
 	// WebServer
 	server := NewServer()
@@ -39,19 +38,28 @@ func main() {
 
 	fmt.Printf("Mise à disposition du fichier %s\n\n", conf.Files.String())
 	fmt.Printf("\t%s\n\n", conf.Link())
-	fmt.Printf("\tLe partage s'arretera des que le fichier sera téléchargé\n\n")
+	fmt.Printf("\tLe partage s'arretera des que le fichier sera téléchargé %d fois\n\n", conf.DownloadLimit)
 
-	// Send link to clipboard
 	if err := clipboard.WriteAll(conf.Link()); err == nil {
 		fmt.Printf("\tLe lien a été copié dans le presse papier\n\n")
 	}
 
-	// Send by mail ?
-	go func() {
-		if ok, _ := prompt.Ask("[ Envoyer le lien par email ? : "); ok {
-			open.Run(fmt.Sprintf("mailto:?subject=Fichier pour vous&Body=%s", url.QueryEscape(conf.Link())))
+	// More Download limit ?
+	go func(*Config) {
+		if !server.hasGateway() {
+			return
 		}
-	}()
+		conf.Internet, _ = prompt.Ask("[ Partager sur internet (port mapping UPNP) ?")
+		if conf.Internet == true {
+			conf.WanIp, conf.WanPort = server.ExposeWan(conf.LocalPort, 15)
+			fmt.Printf("\t%s\n\n", conf.Link())
+
+			// Send link to clipboard
+			if err := clipboard.WriteAll(conf.Link()); err == nil {
+				fmt.Printf("\tLe lien a été copié dans le presse papier\n\n")
+			}
+		}
+	}(conf)
 
 	// Wait for signal CTRL+C for send a stop event to all AgentProcessor
 	// When CTRL+C, SIGINT and SIGTERM signal occurs
@@ -60,6 +68,8 @@ func main() {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
+	case <-conf.Done:
+		close(ch)
 	case <-ch:
 		close(ch)
 	}

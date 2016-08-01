@@ -18,12 +18,13 @@ type File struct {
 type FileList []*File
 
 type Config struct {
-	Token            string
-	Password         string
-	DelaisMinutes    string
-	DelaisMinutesInt int
-	EnvoyerParMail   bool
-	Internet         bool
+	Token           string
+	Password        string
+	DownloadLimit   int
+	DownloadCounter int
+	Internet        bool
+
+	Done chan bool
 
 	Files FileList
 
@@ -45,9 +46,11 @@ func NewConfig() *Config {
 	token := GetMD5Hash(time.Now().String())
 	_, ipv4 := getCurrentHostNameAndIPV4()
 	return &Config{
-		Files:   []*File{},
-		Token:   token,
-		LocalIP: ipv4,
+		Files:         []*File{},
+		Token:         token,
+		LocalIP:       ipv4,
+		Done:          make(chan bool),
+		DownloadLimit: 1,
 	}
 }
 

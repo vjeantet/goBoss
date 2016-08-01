@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/vjeantet/portmap"
+	"github.com/vjeantet/portmap/gateway"
 )
 
 func downloadFile(c *gin.Context) {
@@ -26,7 +27,9 @@ func downloadFile(c *gin.Context) {
 		} else {
 			c.Header("Content-Disposition", "attachment; filename=\""+file.FileBaseName+"\"")
 			c.File(file.FilePath)
-			fmt.Printf("shared - %s - %s\n", c.Request.RemoteAddr, file.FileBaseName)
+			conf.DownloadCounter++
+			fmt.Printf("%d - shared - %s - %s\n", conf.DownloadCounter, c.Request.RemoteAddr, file.FileBaseName)
+
 		}
 	} else {
 		c.String(403, "Fichier inconnu")
@@ -43,11 +46,30 @@ func NewServer() *Server {
 	return &Server{}
 }
 
+func MaxAllowed(n int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// before request
+		c.Next()
+		// after request
+		if conf.DownloadCounter >= conf.DownloadLimit {
+			close(conf.Done)
+		}
+	}
+}
+
+func (s *Server) hasGateway() bool {
+	if ips, err := gateway.GetIPs(); err == nil {
+		return len(ips) > 0
+	}
+	return false
+}
+
 func (s *Server) Serve(wan bool) {
 	// Configure Web Server
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = nil
 	r := gin.Default()
+	r.Use(MaxAllowed(conf.DownloadLimit))
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.GET("/g/:token", downloadFile)
 	s.ln, _ = net.Listen("tcp", ":0")
@@ -56,7 +78,7 @@ func (s *Server) Serve(wan bool) {
 	go http.Serve(s.ln, r)
 
 	if wan == true {
-		conf.WanIp, conf.WanPort = s.ExposeWan(conf.LocalPort, conf.DelaisMinutesInt)
+		conf.WanIp, conf.WanPort = s.ExposeWan(conf.LocalPort, 15)
 	}
 }
 
@@ -84,5 +106,4 @@ func (s *Server) ExposeWan(localport string, lifetime int) (string, string) {
 	s.pm.StopBroadcast()
 	externalAddr := strings.Split(s.pm.ExternalAddr(), ":")
 	return externalAddr[0], externalAddr[1]
-
 }
