@@ -62,7 +62,6 @@ func (s *Server) Serve(wan bool) {
 
 func (s *Server) Stop() {
 	s.ln.Close()
-	time.Sleep(2 * time.Second)
 	if s.pm != nil {
 		fmt.Println("Suppression du paramétrage de la box...")
 		s.pm.Delete()
