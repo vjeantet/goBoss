@@ -8,9 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/Bowery/prompt"
 	"github.com/atotto/clipboard"
@@ -20,8 +18,6 @@ import (
 var conf *Config
 
 func main() {
-	var err error
-
 	if len(os.Args) < 2 {
 		log.Println("donner un fichier svp")
 		os.Exit(1)
@@ -36,16 +32,6 @@ func main() {
 	// Configuration
 	// Ask for configuration
 	conf.Internet, _ = prompt.Ask("[ Etes vous derriere une box sur internet ?")
-	conf.DelaisMinutes, _ = prompt.BasicDefault("[ Desactiver le partage au bout de combien de minutes ? : ", "10")
-
-	if conf.DelaisMinutesInt, err = strconv.Atoi(conf.DelaisMinutes); err != nil {
-		conf.DelaisMinutes = "10"
-		conf.DelaisMinutesInt = 10
-	}
-
-	// Timer
-	DiedAt := time.Now().Add(time.Duration(conf.DelaisMinutesInt) * time.Minute)
-	timesUpChan := time.NewTicker(time.Minute * time.Duration(conf.DelaisMinutesInt))
 
 	// WebServer
 	server := NewServer()
@@ -53,7 +39,7 @@ func main() {
 
 	fmt.Printf("Mise à disposition du fichier %s\n\n", conf.Files.String())
 	fmt.Printf("\t%s\n\n", conf.Link())
-	fmt.Printf("\tLe partage se terminera à %s, dans %d minutes\n\n", DiedAt.Format("15:04:05"), conf.DelaisMinutesInt)
+	fmt.Printf("\tLe partage s'arretera des que le fichier sera téléchargé\n\n")
 
 	// Send link to clipboard
 	if err := clipboard.WriteAll(conf.Link()); err == nil {
@@ -74,10 +60,6 @@ func main() {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
-	case <-timesUpChan.C:
-		fmt.Print("\a")
-		fmt.Println("Partage terminé...")
-		close(ch)
 	case <-ch:
 		close(ch)
 	}
