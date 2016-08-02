@@ -1,5 +1,5 @@
 # goBoss
-Drop and share something by email
+Drop and share a file without configuration or server.
 
 [![Codewake](https://www.codewake.com/badges/ask_question_flat_square.svg)](https://www.codewake.com/p/goboss)
 

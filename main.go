@@ -49,6 +49,10 @@ func main() {
 		if !server.hasGateway() {
 			return
 		}
+		if conf.LocalDomain != "" {
+			return
+		}
+
 		conf.Internet, _ = prompt.Ask("[ Partager sur internet (port mapping UPNP) ?")
 		if conf.Internet == true {
 			conf.WanIp, conf.WanPort = server.ExposeWan(conf.LocalPort, 15)

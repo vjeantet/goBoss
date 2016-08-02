@@ -27,9 +27,9 @@ func downloadFile(c *gin.Context) {
 		} else {
 			c.Header("Content-Disposition", "attachment; filename=\""+file.FileBaseName+"\"")
 			c.File(file.FilePath)
+
 			conf.DownloadCounter++
 			fmt.Printf("%d - shared - %s - %s\n", conf.DownloadCounter, c.Request.RemoteAddr, file.FileBaseName)
-
 		}
 	} else {
 		c.String(403, "Fichier inconnu")
@@ -58,6 +58,17 @@ func MaxAllowed(n int) gin.HandlerFunc {
 }
 
 func (s *Server) hasGateway() bool {
+
+	domain := os.Getenv("USERDNSDOMAIN")
+	if domain != "" {
+		return false
+	}
+
+	domain = os.Getenv("USERDOMAIN")
+	if domain != "" {
+		return false
+	}
+
 	if ips, err := gateway.GetIPs(); err == nil {
 		return len(ips) > 0
 	}
@@ -106,4 +117,40 @@ func (s *Server) ExposeWan(localport string, lifetime int) (string, string) {
 	s.pm.StopBroadcast()
 	externalAddr := strings.Split(s.pm.ExternalAddr(), ":")
 	return externalAddr[0], externalAddr[1]
+}
+
+func getCurrentHostNameAndIPV4() (string, string, string) {
+	name, err := os.Hostname()
+	if err != nil {
+		fmt.Printf("Oops: %v\n", err)
+		name = ""
+	}
+
+	domain := os.Getenv("USERDNSDOMAIN")
+	if domain == "" {
+		domain = os.Getenv("USERDOMAIN")
+	}
+
+	ifaces, err := net.Interfaces()
+	_ = err
+	// handle err
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		_ = err
+		// handle err
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if !ip.IsLoopback() && ip.To4() != nil && !ip.IsLinkLocalUnicast() {
+				return name, ip.String(), domain
+			}
+		}
+	}
+
+	return name, "", domain
 }

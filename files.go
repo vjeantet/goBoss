@@ -4,8 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"net"
-	"os"
 	"path/filepath"
 	"time"
 )
@@ -28,10 +26,12 @@ type Config struct {
 
 	Files FileList
 
-	LocalPort string
-	LocalIP   string
-	WanPort   string
-	WanIp     string
+	LocalPort     string
+	LocalIP       string
+	LocalHostname string
+	LocalDomain   string
+	WanPort       string
+	WanIp         string
 }
 
 func (c *Config) AddFilePath(afile string) {
@@ -44,13 +44,16 @@ func (c *Config) AddFilePath(afile string) {
 
 func NewConfig() *Config {
 	token := GetMD5Hash(time.Now().String())
-	_, ipv4 := getCurrentHostNameAndIPV4()
+	host, ipv4, domain := getCurrentHostNameAndIPV4()
+
 	return &Config{
 		Files:         []*File{},
 		Token:         token,
 		LocalIP:       ipv4,
 		Done:          make(chan bool),
 		DownloadLimit: 1,
+		LocalHostname: host,
+		LocalDomain:   domain,
 	}
 }
 
@@ -66,38 +69,13 @@ func (c *Config) Link() string {
 	if c.WanPort != "" {
 		return fmt.Sprintf("http://%s:%s/g/%s", c.WanIp, c.WanPort, c.Token)
 	}
+
+	if c.LocalDomain != "" {
+		return fmt.Sprintf("http://%s.%s:%s/g/%s", c.LocalHostname, c.LocalDomain, c.LocalPort, c.Token)
+	}
+
 	return fmt.Sprintf("http://%s:%s/g/%s", c.LocalIP, c.LocalPort, c.Token)
-}
 
-func getCurrentHostNameAndIPV4() (string, string) {
-	name, err := os.Hostname()
-	if err != nil {
-		fmt.Printf("Oops: %v\n", err)
-		name = ""
-	}
-
-	ifaces, err := net.Interfaces()
-	_ = err
-	// handle err
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		_ = err
-		// handle err
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if !ip.IsLoopback() && ip.To4() != nil && !ip.IsLinkLocalUnicast() {
-				return name, ip.String()
-			}
-		}
-	}
-
-	return name, ""
 }
 
 func GetMD5Hash(text string) string {
