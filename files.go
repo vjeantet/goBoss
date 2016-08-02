@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -71,7 +72,7 @@ func (c *Config) Link() string {
 	}
 
 	if c.LocalDomain != "" {
-		return fmt.Sprintf("http://%s.%s:%s/g/%s", c.LocalHostname, c.LocalDomain, c.LocalPort, c.Token)
+		return fmt.Sprintf("http://%s.%s:%s/g/%s", c.LocalHostname, strings.ToLower(c.LocalDomain), c.LocalPort, c.Token)
 	}
 
 	return fmt.Sprintf("http://%s:%s/g/%s", c.LocalIP, c.LocalPort, c.Token)
