@@ -82,7 +82,7 @@ func (s *Server) Serve(wan bool) {
 	r := gin.Default()
 	r.Use(MaxAllowed(conf.DownloadLimit))
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
-	r.GET("/g/:token", downloadFile)
+	r.GET("/:token", downloadFile)
 	s.ln, _ = net.Listen("tcp", ":0")
 	_, conf.LocalPort, _ = net.SplitHostPort(s.ln.Addr().String())
 

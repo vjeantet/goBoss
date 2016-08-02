@@ -68,19 +68,19 @@ func (f *FileList) String() string {
 
 func (c *Config) Link() string {
 	if c.WanPort != "" {
-		return fmt.Sprintf("http://%s:%s/g/%s", c.WanIp, c.WanPort, c.Token)
+		return fmt.Sprintf("http://%s:%s/%s", c.WanIp, c.WanPort, c.Token)
 	}
 
 	if c.LocalDomain != "" {
-		return fmt.Sprintf("http://%s.%s:%s/g/%s", c.LocalHostname, strings.ToLower(c.LocalDomain), c.LocalPort, c.Token)
+		return fmt.Sprintf("http://%s.%s:%s/%s", c.LocalHostname, strings.ToLower(c.LocalDomain), c.LocalPort, c.Token)
 	}
 
-	return fmt.Sprintf("http://%s:%s/g/%s", c.LocalIP, c.LocalPort, c.Token)
+	return fmt.Sprintf("http://%s:%s/%s", c.LocalIP, c.LocalPort, c.Token)
 
 }
 
 func GetMD5Hash(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))
-	return hex.EncodeToString(hasher.Sum(nil))
+	return hex.EncodeToString(hasher.Sum(nil))[1:6]
 }
